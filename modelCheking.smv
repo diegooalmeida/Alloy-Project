@@ -1,0 +1,169 @@
+MODULE main
+
+	VAR
+	
+		contentWasChanged: {True, False};
+
+		functional: {True, False};
+		nonFunctional: {True, False};
+		
+		status: process stat(functional, nonFunctional);
+		
+		newContent: {True, False};
+		branches: {True, False};
+		pullRequest: {True, False};
+		
+		
+		changeMaster: process changeM(newContent, branches, pullRequest, contentWasChanged);
+		changeBranches: process ChangeB(newContent, branches, contentWasChanged);
+	
+	ASSIGN
+	
+		init(contentWasChanged) := {False};
+		next(contentWasChanged) :=
+			case
+				(contentWasChanged = True): False;
+				TRUE: {False};
+			esac;
+		
+		init(functional) := {False};
+		init(nonFunctional) := {False};
+		
+		init(newContent) := {False};
+		next(newContent) :=
+			case
+				(status.end = True): {False};
+				TRUE: {True, False};
+			esac;
+		
+		init(branches) := {False};
+		next(branches) :=
+			case
+				(status.end = True): {False};
+				TRUE: {True, False};
+			esac;
+			
+		init(pullRequest) := {False};
+		next(pullRequest) :=
+			case
+				(status.end = True): {False};
+				TRUE: {True, False};
+			esac;
+		
+		LTLSPEC G(functional = True & nonFunctional = True) -> X (status.inProgress = False);
+		LTLSPEC G(status.begin = True) -> X (status.inProgress = True);
+		LTLSPEC G(status.begin = True) -> F (status.end = True);
+		LTLSPEC G(status.inProgress = True) -> F (status.end = True);
+		LTLSPEC G(status.inProgress = False) -> X (status.end = True);
+		LTLSPEC F(status.inProgress = True) -> O (status.begin = True);
+		LTLSPEC G(status.end = True) -> O (status.begin = True & status.inProgress = True);
+		
+		LTLSPEC G(contentWasChanged = True) -> X (contentWasChanged = False);
+		
+		LTLSPEC G(newContent = True & branches = True & pullRequest = True) -> X (contentWasChanged = True);
+		LTLSPEC G(newContent = True & branches = True & pullRequest = False) -> X (contentWasChanged = False);
+		LTLSPEC G(newContent = True & branches = False & pullRequest = False) -> X (contentWasChanged = True);
+		
+		LTLSPEC G(newContent = True & branches = True) -> X (contentWasChanged = True);
+		
+		LTLSPEC G(status.end = True) -> G (newContent = False);
+		LTLSPEC G(status.end = True) -> G (branches = False);
+		LTLSPEC G(status.end = True) -> G (pullRequest = False);
+		
+		LTLSPEC G(status.end = True) -> G (status.inProgress = False);
+		
+		LTLSPEC G(status.end = True) -> G (status.project.contract = True);
+
+		LTLSPEC G(status.end = True) -> G (functional = True);
+		LTLSPEC G(status.end = True) -> G (nonFunctional = True);
+		
+		LTLSPEC G(status.project.contract = True) -> H (status.project.contract = False);
+		
+		
+
+		
+MODULE stat(functional, nonFunctional)
+
+	VAR
+		begin: {True, False};
+		inProgress: {True, False};
+		end: {True, False};
+		
+		project: process proj(end);
+	
+	
+	ASSIGN
+		init(begin):= (True);
+		init(inProgress) := {False};
+		init(end) := {False};
+		
+		next(inProgress) := 
+			case
+				(begin = True): {True};
+				-- If all Functional Requirements and Non Functional Requirements are met, the project isn't In Progress anymore
+				(functional = True & nonFunctional = True): {False};
+				TRUE: {True};
+			esac;
+			
+		next(begin) :=
+			case
+				(inProgress = True | end = True ): False;
+				TRUE: {True};
+			esac;
+			
+		next(end) :=
+			case
+				-- If all Functional Requirements and Non Functional Requirements are met, the project reaches the end
+				(functional = True & nonFunctional = True): {True};
+				TRUE: {False};
+			esac;
+
+    FAIRNESS
+        running
+
+MODULE proj(end)
+
+	VAR
+		contract: {True, False};
+		
+	ASSIGN 
+		-- In the beginning, the contract isn't signed (false)
+		init(contract) := {False};
+		
+		next(contract) :=
+			case
+				-- If the project reached the end, the contract is signed
+				(end = True): {True};
+				TRUE: {False};
+			esac;
+
+    FAIRNESS
+        running
+		
+MODULE changeM (newContent, branches, pullRequest, contentWasChanged)
+		
+	ASSIGN
+		
+		next(contentWasChanged) :=
+			case
+				(newContent = True & branches = True & pullRequest = True): {True};
+				(newContent = True & branches = True & pullRequest = False): {False};
+				(newContent = True & branches = False & pullRequest = False): {True};
+				TRUE: {False};
+			esac;
+			
+    FAIRNESS
+        running
+
+MODULE ChangeB (newContent, branches, contentWasChanged)
+	
+	ASSIGN
+		
+		next(contentWasChanged) :=
+			case
+				(newContent = True & branches = True): {True};
+				TRUE: {False};
+			esac;
+
+    FAIRNESS
+        running
