@@ -1,49 +1,74 @@
+--| Alloy Project - Model Checking - Computação@UFCG
+--|
+--| Group 11 : Git Repository
+--|
+--| Diego Ribeiro de Almeida
+--| Iago Tito Oliveira
+--| Paulo Mateus Alves Moreira
+--| Raiany Rufino Costa da Paz
+--|
+--| Client: Jose Ivan
+--| Professor: Tiago Massoni
+
 MODULE main
 
 	VAR
-	
+		-- Says if some change was happened in the main branch
 		contentWasChanged: {True, False};
 
+		-- Functional and Non Functional Requirements
 		functional: {True, False};
 		nonFunctional: {True, False};
 		
+		-- Says if the project if in the beginning, if is In Progress or if it ended
 		status: process stat(functional, nonFunctional);
 		
+		-- If a New Content exists to be added to the project
 		newContent: {True, False};
+		-- Says if some branch exist
 		branches: {True, False};
+		-- Says if a Pull Request was issued
 		pullRequest: {True, False};
 		
-		
+		-- TODO
 		changeMaster: process changeM(newContent, branches, pullRequest, contentWasChanged);
 		changeBranches: process ChangeB(newContent, branches, contentWasChanged);
 	
 	ASSIGN
-	
+		-- In the beginning, the content was not changed
 		init(contentWasChanged) := {False};
+		-- If the conted be changed, it come back to the 'not changed' mode in the next moment 
 		next(contentWasChanged) :=
 			case
 				(contentWasChanged = True): False;
 				TRUE: {False};
 			esac;
 		
+		-- The Functional and Non Functional Requirements beguin as 'not conclued' (false)
 		init(functional) := {False};
 		init(nonFunctional) := {False};
 		
+		-- In the beginning, there is no New Content
 		init(newContent) := {False};
+		-- If the project reaches the end, there is no more New Content
 		next(newContent) :=
 			case
 				(status.end = True): {False};
 				TRUE: {True, False};
 			esac;
 		
+		-- In the beginning, there is no Branches
 		init(branches) := {False};
+		-- If the project reaches the end, there is no more Branches
 		next(branches) :=
 			case
 				(status.end = True): {False};
 				TRUE: {True, False};
 			esac;
 			
+		-- In the beginning, there is no Pull Requests
 		init(pullRequest) := {False};
+		-- If the project reaches the end, there is no more Pull Requests
 		next(pullRequest) :=
 			case
 				(status.end = True): {False};
@@ -97,6 +122,7 @@ MODULE stat(functional, nonFunctional)
 		init(inProgress) := {False};
 		init(end) := {False};
 		
+		-- If the project begun, in the next state it will be in progress
 		next(inProgress) := 
 			case
 				(begin = True): {True};
@@ -105,15 +131,16 @@ MODULE stat(functional, nonFunctional)
 				TRUE: {True};
 			esac;
 			
+		-- Begin is just a initial state, it will change to False in the next moment
 		next(begin) :=
 			case
 				(inProgress = True | end = True ): False;
 				TRUE: {True};
 			esac;
-			
+		
 		next(end) :=
 			case
-				-- If all Functional Requirements and Non Functional Requirements are met, the project reaches the end
+				-- If all Functional Requirements and Non Functional Requirements are met, the project reaches the End
 				(functional = True & nonFunctional = True): {True};
 				TRUE: {False};
 			esac;
@@ -140,6 +167,8 @@ MODULE proj(end)
     FAIRNESS
         running
 		
+
+-- Says if a New Content was added to the main branch of the project
 MODULE changeM (newContent, branches, pullRequest, contentWasChanged)
 		
 	ASSIGN
@@ -155,6 +184,8 @@ MODULE changeM (newContent, branches, pullRequest, contentWasChanged)
     FAIRNESS
         running
 
+
+-- Says if a New Content was added to a branch of the project
 MODULE ChangeB (newContent, branches, contentWasChanged)
 	
 	ASSIGN
